@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
-import threading
+from threading import Thread, Lock
+import time
 
 app = Flask(__name__)
 
@@ -13,19 +14,31 @@ events = [
 ]
 
 registrations = []  # Inscrições
+connected_sessions = []  # Sessões conectadas
+waiting_sessions = []  # Lista de espera
+max_connections = 3
 
-# Lock para evitar condições de corrida
-event_lock = threading.Lock()
+# Lock para garantir acesso seguro às listas
+list_lock = Lock()
 
-# Semáforos para gerenciar vagas disponíveis em eventos
-event_semaphores = {event["id"]: threading.Semaphore(event["slots"]) for event in events}
+# Função para gerenciar a lista de espera em uma thread separada
+def manage_waiting_sessions():
+    while True:
+        with list_lock:
+            if len(connected_sessions) < max_connections and waiting_sessions:
+                # Promove o próximo da lista de espera para conectado
+                next_session = waiting_sessions.pop(0)
+                connected_sessions.append(next_session)
+                print(f"Promovido da lista de espera: {next_session}")
+        time.sleep(1)  # Evita consumo excessivo de recursos
 
-# Rota principal
+# Inicia a thread ao iniciar a aplicação
+Thread(target=manage_waiting_sessions, daemon=True).start()
+
 @app.route("/")
 def index():
     return render_template("index.html", events=events)
 
-# Rota para inscrição em eventos
 @app.route("/register/<int:event_id>", methods=["GET", "POST"])
 def register(event_id):
     event = next((e for e in events if e["id"] == event_id), None)
@@ -36,76 +49,102 @@ def register(event_id):
         name = request.form["name"]
         email = request.form["email"]
 
-        # Usar o semáforo para garantir acesso às vagas disponíveis
-        if event_semaphores[event_id].acquire(blocking=False):  # Verifica se há vagas
-            with event_lock:  # Garante manipulação segura dos dados do evento
-                if event["slots"] > 0:
-                    registrations.append({"name": name, "email": email, "event": event["name"]})
-                    event["slots"] -= 1
-                    return redirect(url_for("index"))
-                else:
-                    # Libera o semáforo caso não tenha mais vagas (inconsistência evitada)
-                    event_semaphores[event_id].release()
-                    return "Vagas esgotadas!", 400
+        if event["slots"] > 0:
+            registrations.append({"name": name, "email": email, "event": event["name"]})
+            event["slots"] -= 1
+            return redirect(url_for("index"))
         else:
             return "Vagas esgotadas!", 400
 
     return render_template("register.html", event=event)
 
-# Rotas do administrador (manutenção de outras funcionalidades)
 @app.route("/admin")
 def admin():
-    """Exibe a interface para o administrador gerenciar eventos."""
     return render_template("admin.html", events=events)
 
 @app.route("/admin/add", methods=["GET", "POST"])
 def add_event():
-    """Adiciona um novo evento."""
     if request.method == "POST":
         name = request.form["name"]
         date = request.form["date"]
         slots = int(request.form["slots"])
 
-        with event_lock:
-            new_event = {
-                "id": len(events) + 1,
-                "name": name,
-                "date": date,
-                "slots": slots,
-            }
-            events.append(new_event)
-            event_semaphores[new_event["id"]] = threading.Semaphore(slots)  # Cria semáforo para o novo evento
+        new_event = {"id": len(events) + 1, "name": name, "date": date, "slots": slots}
+        events.append(new_event)
         return redirect(url_for("admin"))
 
     return render_template("add_event.html")
 
 @app.route("/admin/edit/<int:event_id>", methods=["GET", "POST"])
 def edit_event(event_id):
-    """Edita um evento existente."""
     event = next((e for e in events if e["id"] == event_id), None)
     if not event:
         return "Evento não encontrado!", 404
 
     if request.method == "POST":
-        with event_lock:
-            event["name"] = request.form["name"]
-            event["date"] = request.form["date"]
-            new_slots = int(request.form["slots"])
-            event["slots"] = new_slots
-            # Atualiza o semáforo para refletir o número de slots
-            event_semaphores[event_id] = threading.Semaphore(new_slots)
+        event["name"] = request.form["name"]
+        event["date"] = request.form["date"]
+        event["slots"] = int(request.form["slots"])
         return redirect(url_for("admin"))
 
     return render_template("edit_event.html", event=event)
 
 @app.route("/admin/delete/<int:event_id>", methods=["POST"])
 def delete_event(event_id):
-    """Remove um evento."""
     global events
-    with event_lock:
-        events = [e for e in events if e["id"] != event_id]
-        event_semaphores.pop(event_id, None)  # Remove o semáforo associado
+    events = [e for e in events if e["id"] != event_id]
     return redirect(url_for("admin"))
+
+@app.route("/register_tab", methods=["POST"])
+def register_tab():
+    tab_session_id = request.json.get("tabSessionId")
+    if not tab_session_id:
+        return jsonify({"error": "Tab session ID is required"}), 400
+
+    with list_lock:
+        if tab_session_id in connected_sessions or tab_session_id in waiting_sessions:
+            return jsonify({"message": "Tab already registered", "tabSessionId": tab_session_id})
+
+        if len(connected_sessions) < max_connections:
+            connected_sessions.append(tab_session_id)
+            status = "connected"
+        else:
+            waiting_sessions.append(tab_session_id)
+            status = "waiting"
+
+    return jsonify({"message": f"Tab {status}", "tabSessionId": tab_session_id})
+
+@app.route("/list_tabs", methods=["GET"])
+def list_tabs():
+    with list_lock:
+        return jsonify({"connected": connected_sessions, "waiting": waiting_sessions})
+
+@app.route("/remove_tab", methods=["POST"])
+def remove_tab():
+    tab_session_id = request.json.get("tabSessionId")
+    if not tab_session_id:
+        return jsonify({"error": "Tab session ID is required"}), 400
+
+    with list_lock:
+        if tab_session_id in connected_sessions:
+            connected_sessions.remove(tab_session_id)
+        elif tab_session_id in waiting_sessions:
+            waiting_sessions.remove(tab_session_id)
+        else:
+            return jsonify({"error": "Tab not found"}), 404
+
+    return jsonify({"message": "Tab removed"})
+
+@app.route("/admin/set_max_connections", methods=["GET", "POST"])
+def set_max_connections():
+    global max_connections
+    if request.method == "POST":
+        try:
+            max_connections = int(request.form["max_connections"])
+            return redirect(url_for("admin"))
+        except ValueError:
+            return "Valor inválido!", 400
+    return render_template("set_max_connections.html", max_connections=max_connections)
 
 if __name__ == "__main__":
     app.run(debug=True)
