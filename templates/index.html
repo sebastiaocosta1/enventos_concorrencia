@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eventos</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h2>Eventos</h2>
+    <h3>Total de usuários oline: <span id="total-sessions-count">0</span></h3>
+  </header>
+
+  <main>
+    <div class="event-list">
+      {% for event in events %}
+        <div class="event-card">
+          <h2>{{ event.name }}</h2>
+          <p>Data: {{ event.date }}</p>
+          <p>Vagas disponíveis: {{ event.slots }}</p>
+          <a href="/register/{{ event.id }}" class="register-btn">Inscrever-se</a>
+        </div>
+      {% endfor %}
+    </div>
+  </main>
+
+  <!-- Barra lateral -->
+  <div class="sidebar">
+    <h3>Usuários Conectados</h3>
+    <ul id="connected-users"></ul>
+
+    <h3>Lista de Espera</h3>
+    <ul id="waiting-users"></ul>
+  </div>
+
+  <script>
+    // Gera ou recupera o identificador único da aba no sessionStorage
+    if (!sessionStorage.getItem("tabSessionId")) {
+        const uniqueId = Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem("tabSessionId", uniqueId);
+    }
+
+    const tabSessionId = sessionStorage.getItem("tabSessionId");
+
+    console.log("Tab Session ID:", tabSessionId);
+
+    // Função para registrar a aba no servidor
+    function registerTab() {
+        return fetch("/register_tab", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ tabSessionId: tabSessionId }),
+        })
+        .then((response) => response.json());
+    }
+
+    // Função para remover a aba no servidor
+    function removeTab() {
+        return fetch("/remove_tab", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ tabSessionId: tabSessionId }),
+        })
+        .then((response) => response.json())
+        .catch((error) => console.error("Error:", error));
+    }
+
+    // Função para listar abas conectadas e em espera
+    function listTabs() {
+        return fetch("/list_tabs")
+            .then((response) => response.json());
+    }
+
+    // Atualizar a barra lateral com usuários conectados e lista de espera
+// Atualizar a barra lateral com usuários conectados, lista de espera e contadores
+function updateSidebar() {
+    listTabs()
+        .then(({ connected, waiting }) => {
+            const connectedList = document.getElementById("connected-users");
+            connectedList.innerHTML = connected.map(tab => `<li>${tab}</li>`).join('');
+
+            const waitingList = document.getElementById("waiting-users");
+            waitingList.innerHTML = waiting.map(tab => `<li>${tab}</li>`).join('');
+
+            // Atualiza o contador de usuários conectados
+            // const connectedCount = document.getElementById("connected-count");
+            // connectedCount.textContent = connected.length;
+
+            // Atualiza o contador total (conectados + lista de espera)
+            const totalSessionsCount = document.getElementById("total-sessions-count");
+            totalSessionsCount.textContent = connected.length + waiting.length;
+        })
+        .catch((error) => console.error("Error fetching tabs:", error));
+}
+
+
+    // Registrar a aba no carregamento
+    document.addEventListener("DOMContentLoaded", () => {
+        registerTab()
+            .then(() => {
+                updateSidebar();
+            })
+            .catch((error) => console.error("Error:", error));
+    });
+
+    // Remover a aba quando ela for fechada
+    window.addEventListener("beforeunload", () => {
+        removeTab();
+    });
+
+    // Atualizar a barra lateral periodicamente
+    setInterval(updateSidebar, 5000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inscrição</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    /* Adicione estilos básicos para o temporizador */
+    .timer {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background-color: #f4f4f4;
+      border: 1px solid #ccc;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      font-size: 16px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Inscreva-se no Evento</h1>
+  </header>
+  <main>
+    <div class="form-container">
+      <h2>{{ event.name }}</h2>
+      <form action="" method="POST">
+        <label for="name">Nome:</label>
+        <input type="text" id="name" name="name" required>
+
+        <label for="email">Telefone:</label>
+        <input type="email" id="email" name="email" required>
+
+        <button type="submit" class="submit-btn">Confirmar Inscrição</button>
+      </form>
+    </div>
+  </main>
+
+  <!-- Temporizador -->
+  <div class="timer">
+    Tempo restante: <span id="countdown">120</span> segundos
+  </div>
+
+  <script>
+    // Define o tempo inicial em segundos
+    let timeRemaining = 120;
+
+    // Elemento para exibir o temporizador
+    const countdownElement = document.getElementById('countdown');
+
+    // Atualiza o temporizador a cada segundo
+    const countdownInterval = setInterval(() => {
+      timeRemaining -= 1;
+      countdownElement.textContent = timeRemaining;
+
+      // Redireciona quando o tempo chega a 0
+      if (timeRemaining <= 0) {
+        clearInterval(countdownInterval); // Para o temporizador
+        window.location.href = "/"; // Redireciona para a página inicial
+      }
+    }, 1000);
+  </script>
+</body>
+</html>

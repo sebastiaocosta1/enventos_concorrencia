@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Gerenciar Eventos</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>Gerenciar Eventos</h1>
+  </header>
+  <main>
+    <div class="admin-container">
+      <a href="/" class="add-btn">Voltar</a>
+      <a href="/admin/add" class="add-btn">Adicionar Novo Evento</a>
+      <a href="/admin/set_max_connections" class="add-btn">Configurar Máximo de Conexões</a>
+      <table class="event-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Data</th>
+            <th>Vagas</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for event in events %}
+          <tr>
+            <td>{{ event.id }}</td>
+            <td>{{ event.name }}</td>
+            <td>{{ event.date }}</td>
+            <td>{{ event.slots }}</td>
+            <td>
+              <a href="/admin/edit/{{ event.id }}" class="edit-btn">Editar</a>
+              <form action="/admin/delete/{{ event.id }}" method="POST" style="display:inline;">
+                <button type="submit" class="delete-btn">Excluir</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </main>
+</body>
+</html>
