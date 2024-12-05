@@ -15,25 +15,7 @@
       <div class="timer-container">
         Tempo restante: <span id="timer">30</span> segundos
     </div>
-
-    <script>
-        let countdown = 30; // Tempo inicial
-        const timerElement = document.getElementById('timer');
-
-        function startTimer() {
-            const interval = setInterval(() => {
-                timerElement.textContent = countdown;
-                countdown--;
-
-                if (countdown < 0) {
-                    countdown = 30; // Reinicia o contador
-                }
-            }, 1000);
-        }
-
-        startTimer(); // Inicia o temporizador
-    </script>
-
+    
   <main>
     <div class="event-list">
       {% for event in events %}
