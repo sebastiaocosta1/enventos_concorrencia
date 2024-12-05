@@ -12,6 +12,28 @@
     <h3>Total de usuários oline: <span id="total-sessions-count">0</span></h3>
   </header>
 
+      <div class="timer-container">
+        Tempo restante: <span id="timer">30</span> segundos
+    </div>
+
+    <script>
+        let countdown = 30; // Tempo inicial
+        const timerElement = document.getElementById('timer');
+
+        function startTimer() {
+            const interval = setInterval(() => {
+                timerElement.textContent = countdown;
+                countdown--;
+
+                if (countdown < 0) {
+                    countdown = 30; // Reinicia o contador
+                }
+            }, 1000);
+        }
+
+        startTimer(); // Inicia o temporizador
+    </script>
+
   <main>
     <div class="event-list">
       {% for event in events %}
@@ -35,9 +57,24 @@
   </div>
 
   <script>
+     let countdown = 30; // Tempo inicial
+        const timerElement = document.getElementById('timer');
+
+        function startTimer() {
+            const interval = setInterval(() => {
+                timerElement.textContent = countdown;
+                countdown--;
+
+                if (countdown < 0) {
+                    countdown = 30; // Reinicia o contador
+                }
+            }, 1000);
+        }
+
+        startTimer(); // Inicia o temporizador
     // Gera ou recupera o identificador único da aba no sessionStorage
     if (!sessionStorage.getItem("tabSessionId")) {
-        const uniqueId = Math.random().toString(36).substr(2, 9);
+        const uniqueId = Math.random().toString(10).substr(2, 3);
         sessionStorage.setItem("tabSessionId", uniqueId);
     }
 
@@ -82,10 +119,10 @@ function updateSidebar() {
     listTabs()
         .then(({ connected, waiting }) => {
             const connectedList = document.getElementById("connected-users");
-            connectedList.innerHTML = connected.map(tab => `<li>${tab}</li>`).join('');
+            connectedList.innerHTML = connected.map(tab => `<li>Usuário: ${tab}</li>`).join('');
 
             const waitingList = document.getElementById("waiting-users");
-            waitingList.innerHTML = waiting.map(tab => `<li>${tab}</li>`).join('');
+            waitingList.innerHTML = waiting.map(tab => `<li>Usuário: ${tab}</li>`).join('');
 
             // Atualiza o contador de usuários conectados
             // const connectedCount = document.getElementById("connected-count");
