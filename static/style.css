@@ -188,7 +188,17 @@ form input {
 body {
   margin-right: 250px; /* Espaço para a barra lateral */
 }
-
 .event-list {
   padding: 20px;
+}
+
+.timer-container {
+  background-color: #4a90e2;
+  color: white;
+  padding: 10px;
+  font-size: 2rem;
+  position: fixed center;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
 }
