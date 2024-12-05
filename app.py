@@ -9,8 +9,7 @@ events = [
     {"id": 1, "name": "Workshop de React", "date": "15/11/2024", "slots": 20},
     {"id": 2, "name": "Conferência de UX", "date": "20/11/2024", "slots": 15},
     {"id": 3, "name": "Hackathon 2024", "date": "25/11/2024", "slots": 30},
-    {"id": 4, "name": "DevOps Summit", "date": "30/11/2024", "slots": 25},
-    {"id": 5, "name": "AI Conference", "date": "05/12/2024", "slots": 40},
+    {"id": 4, "name": "DevOps Summit", "date": "30/11/2024", "slots": 25}    
 ]
 
 registrations = []  # Inscrições
